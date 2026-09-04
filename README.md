@@ -16,5 +16,6 @@ de estudo.
 
 ## Como executar
 
-As instruções completas de instalação serão adicionadas
-durante o desenvolvimento.
+1. Ative o ambiente virtual.
+2. Instale as dependências.
+3. Execute:

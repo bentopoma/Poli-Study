@@ -1,0 +1,15 @@
+{
+    "materias": [
+        {
+            "nome": "Cálculo I",
+            "dificuldade": 4,
+            "horas_semanais": 6.0
+        },
+        {
+            "nome": "Álgebra Linear 2",
+            "dificuldade": 3,
+            "horas_semanais": 3.5
+        }
+    ],
+    "atividades": []
+}

@@ -27,9 +27,17 @@ def carregar_dados():
                 dados["materias"] = []
             if "atividades" not in dados:
                 dados["atividades"] = []
+            precisa_salvar = False
+            for mat in dados["materias"]:
+                if "id" not in mat:
+                    mat["id"] = uuid.uuid4().hex[:8]
+                    precisa_salvar = True
             for ativ in dados["atividades"]:
                 if "id" not in ativ:
                     ativ["id"] = uuid.uuid4().hex[:8]
+                    precisa_salvar = True
+            if precisa_salvar:
+                salvar_dados(dados)
             return dados
     except (json.JSONDecodeError, OSError):
         dados_recuperados = {"materias": [], "atividades": []}
@@ -269,7 +277,7 @@ else:
         except (ValueError, TypeError):
             data_formatada = str(ativ.get("data", ""))
 
-        col_ativ_info, col_ativ_del = st.columns([5, 1])
+        col_ativ_info, col_ativ_edit, col_ativ_del = st.columns([5, 1, 1])
         with col_ativ_info:
             st.write(
                 f"- **{ativ['nome']}** ({ativ['tipo']}) — "
@@ -277,6 +285,13 @@ else:
                 f"Data: {data_formatada} | "
                 f"Importância: {ativ['importancia']}/5"
             )
+        with col_ativ_edit:
+            if st.button("✏️ Editar", key=f"btn_edit_ativ_{ativ['id']}"):
+                if st.session_state.get("editando_atividade_id") == ativ["id"]:
+                    st.session_state.pop("editando_atividade_id", None)
+                else:
+                    st.session_state["editando_atividade_id"] = ativ["id"]
+                st.rerun()
         with col_ativ_del:
             if st.button("🗑️ Excluir", key=f"del_ativ_{ativ['id']}"):
                 dados["atividades"] = [
@@ -284,6 +299,80 @@ else:
                 ]
                 salvar_dados(dados)
                 st.rerun()
+
+        if st.session_state.get("editando_atividade_id") == ativ["id"]:
+            with st.container():
+                st.markdown(f"**✏️ Editando atividade: {ativ['nome']}**")
+                edit_nome_ativ = st.text_input(
+                    "Nome da atividade",
+                    value=ativ["nome"],
+                    key=f"edit_nome_ativ_{ativ['id']}"
+                )
+                nomes_materias = [m["nome"] for m in dados["materias"]]
+                if not nomes_materias:
+                    st.warning("Nenhuma matéria cadastrada.")
+                else:
+                    idx_mat = (
+                        nomes_materias.index(ativ["materia"])
+                        if ativ["materia"] in nomes_materias
+                        else 0
+                    )
+                    edit_mat_ativ = st.selectbox(
+                        "Matéria associada",
+                        options=nomes_materias,
+                        index=idx_mat,
+                        key=f"edit_mat_ativ_{ativ['id']}"
+                    )
+                    tipos = ["Prova", "Trabalho", "Tarefa"]
+                    idx_tipo = (
+                        tipos.index(ativ.get("tipo", "Prova"))
+                        if ativ.get("tipo") in tipos
+                        else 0
+                    )
+                    edit_tipo_ativ = st.selectbox(
+                        "Tipo de atividade",
+                        options=tipos,
+                        index=idx_tipo,
+                        key=f"edit_tipo_ativ_{ativ['id']}"
+                    )
+                    try:
+                        data_val = datetime.strptime(ativ["data"], "%Y-%m-%d").date()
+                    except (ValueError, TypeError):
+                        data_val = date.today()
+                    edit_data_ativ = st.date_input(
+                        "Data da atividade",
+                        value=data_val,
+                        format="DD/MM/YYYY",
+                        key=f"edit_data_ativ_{ativ['id']}"
+                    )
+                    edit_imp_ativ = st.slider(
+                        "Importância da atividade",
+                        min_value=1,
+                        max_value=5,
+                        value=int(ativ.get("importancia", 3)),
+                        key=f"edit_imp_ativ_{ativ['id']}"
+                    )
+
+                    col_save_a, col_canc_a = st.columns([1, 1])
+                    with col_save_a:
+                        if st.button("Salvar alterações", key=f"save_ativ_{ativ['id']}", type="primary"):
+                            nome_ativ_limpo = edit_nome_ativ.strip()
+                            if nome_ativ_limpo:
+                                ativ["nome"] = nome_ativ_limpo
+                                ativ["materia"] = edit_mat_ativ
+                                ativ["tipo"] = edit_tipo_ativ
+                                ativ["data"] = edit_data_ativ.strftime("%Y-%m-%d")
+                                ativ["importancia"] = edit_imp_ativ
+                                salvar_dados(dados)
+                                st.session_state.pop("editando_atividade_id", None)
+                                st.success(f"Atividade '{nome_ativ_limpo}' atualizada!")
+                                st.rerun()
+                            else:
+                                st.warning("O nome da atividade não pode ser vazio.")
+                    with col_canc_a:
+                        if st.button("Cancelar", key=f"canc_ativ_{ativ['id']}"):
+                            st.session_state.pop("editando_atividade_id", None)
+                            st.rerun()
 
 st.divider()
 with st.expander("➕ Adicionar matéria"):
@@ -304,6 +393,7 @@ with st.expander("➕ Adicionar matéria"):
         nome_limpo = materia.strip()
         if nome_limpo:
             nova_materia = {
+                "id": uuid.uuid4().hex[:8],
                 "nome": nome_limpo,
                 "dificuldade": dificuldade,
                 "horas_semanais": horas
@@ -328,26 +418,33 @@ else:
         qtd_vinculadas = sum(
             1 for a in dados["atividades"] if a.get("materia") == item["nome"]
         )
-        col_info, col_del = st.columns([5, 1])
+        col_info, col_edit, col_del = st.columns([5, 1, 1])
         with col_info:
             st.write(
                 f"- **{item['nome']}** — "
                 f"Dificuldade: {item['dificuldade']}/5 | "
                 f"Meta: {item['horas_semanais']}h/semana"
             )
+        with col_edit:
+            if st.button("✏️ Editar", key=f"btn_edit_mat_{item['id']}"):
+                if st.session_state.get("editando_materia_id") == item["id"]:
+                    st.session_state.pop("editando_materia_id", None)
+                else:
+                    st.session_state["editando_materia_id"] = item["id"]
+                st.rerun()
         with col_del:
-            if st.button("🗑️ Excluir", key=f"del_mat_{idx}"):
+            if st.button("🗑️ Excluir", key=f"del_mat_{item['id']}"):
                 if qtd_vinculadas == 0:
                     dados["materias"] = [
-                        m for m in dados["materias"] if m["nome"] != item["nome"]
+                        m for m in dados["materias"] if m["id"] != item["id"]
                     ]
                     salvar_dados(dados)
                     st.rerun()
                 else:
-                    st.session_state["confirmar_exclusao_materia"] = item["nome"]
+                    st.session_state["confirmar_exclusao_materia"] = item["id"]
                     st.rerun()
 
-        if st.session_state.get("confirmar_exclusao_materia") == item["nome"]:
+        if st.session_state.get("confirmar_exclusao_materia") == item["id"]:
             st.warning(
                 f"⚠️ Essa matéria possui {qtd_vinculadas} atividade(s) vinculada(s). "
                 "Deseja excluir ela mesmo assim?"
@@ -356,11 +453,11 @@ else:
             with col_conf_sim:
                 if st.button(
                     "Sim, excluir matéria e atividades",
-                    key=f"conf_sim_{idx}",
+                    key=f"conf_sim_{item['id']}",
                     type="primary"
                 ):
                     dados["materias"] = [
-                        m for m in dados["materias"] if m["nome"] != item["nome"]
+                        m for m in dados["materias"] if m["id"] != item["id"]
                     ]
                     dados["atividades"] = [
                         a for a in dados["atividades"] if a.get("materia") != item["nome"]
@@ -369,9 +466,59 @@ else:
                     salvar_dados(dados)
                     st.rerun()
             with col_conf_nao:
-                if st.button("Cancelar", key=f"conf_nao_{idx}"):
+                if st.button("Cancelar", key=f"conf_nao_{item['id']}"):
                     st.session_state.pop("confirmar_exclusao_materia", None)
                     st.rerun()
+
+        if st.session_state.get("editando_materia_id") == item["id"]:
+            with st.container():
+                st.markdown(f"**✏️ Editando matéria: {item['nome']}**")
+                edit_nome_mat = st.text_input(
+                    "Nome da matéria",
+                    value=item["nome"],
+                    key=f"edit_nome_mat_{item['id']}"
+                )
+                edit_dif_mat = st.slider(
+                    "Dificuldade da matéria",
+                    min_value=1,
+                    max_value=5,
+                    value=int(item["dificuldade"]),
+                    key=f"edit_dif_mat_{item['id']}"
+                )
+                edit_horas_mat = st.number_input(
+                    "Meta de horas de estudo por semana",
+                    min_value=0.0,
+                    step=0.5,
+                    value=float(item.get("horas_semanais", 0.0)),
+                    key=f"edit_horas_mat_{item['id']}"
+                )
+
+                col_save_m, col_canc_m = st.columns([1, 1])
+                with col_save_m:
+                    if st.button("Salvar alterações", key=f"save_mat_{item['id']}", type="primary"):
+                        nome_limpo = edit_nome_mat.strip()
+                        if nome_limpo:
+                            nome_antigo = item["nome"]
+                            item["nome"] = nome_limpo
+                            item["dificuldade"] = edit_dif_mat
+                            item["horas_semanais"] = edit_horas_mat
+
+                            # Atualização em cascata das atividades associadas se o nome mudou
+                            if nome_limpo != nome_antigo:
+                                for a in dados["atividades"]:
+                                    if a.get("materia") == nome_antigo:
+                                        a["materia"] = nome_limpo
+
+                            salvar_dados(dados)
+                            st.session_state.pop("editando_materia_id", None)
+                            st.success(f"Matéria '{nome_limpo}' atualizada!")
+                            st.rerun()
+                        else:
+                            st.warning("O nome da matéria não pode ser vazio.")
+                with col_canc_m:
+                    if st.button("Cancelar", key=f"canc_mat_{item['id']}"):
+                        st.session_state.pop("editando_materia_id", None)
+                        st.rerun()
 
 st.divider()
 st.subheader("Gerenciamento do semestre")
@@ -386,5 +533,7 @@ if st.button("Limpar semestre", type="primary", disabled=not confirmar_limpeza):
     dados["atividades"] = []
     salvar_dados(dados)
     st.session_state.pop("confirmar_exclusao_materia", None)
+    st.session_state.pop("editando_materia_id", None)
+    st.session_state.pop("editando_atividade_id", None)
     st.success("Todas as matérias e atividades foram apagadas com sucesso!")
     st.rerun()

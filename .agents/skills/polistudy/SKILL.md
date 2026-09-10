@@ -30,13 +30,14 @@ funcional e fácil de entender.
 A plataforma deve permitir:
 
 - cadastrar matérias;
-- armazenar matérias;
+- armazenar matérias em JSON;
 - cadastrar provas, trabalhos e tarefas;
-- armazenar atividades;
+- armazenar atividades em JSON;
 - excluir matérias individualmente;
 - excluir atividades individualmente;
-- limpar os dados ao final do semestre;
-- futuramente, priorizar automaticamente o que estudar.
+- limpar todos os dados ao final do semestre;
+- priorizar automaticamente as atividades de estudo;
+- visualizar atividades em um calendário acadêmico mensal e semanal.
 
 ## Dados
 
@@ -53,6 +54,47 @@ existentes sempre que possível.
 órfãs e avisar o usuário antes da exclusão.
 - A função "Limpar semestre" deve pedir confirmação antes de apagar
 todas as matérias e atividades.
+
+### Priorização automática
+
+A prioridade das atividades deve ser calculada de forma determinística
+e explicável.
+
+O cálculo deve considerar:
+
+- urgência da atividade;
+- importância definida pelo usuário;
+- dificuldade da matéria associada.
+
+A fórmula utilizada deve ser:
+
+Prioridade = 0,45 × urgência + 0,35 × importância + 0,20 × dificuldade.
+
+Os pesos e critérios não devem ser alterados sem uma justificativa
+ou explicação prévia.
+
+As atividades devem ser exibidas da maior para a menor prioridade,
+com uma explicação simples dos fatores que influenciaram o resultado.
+
+### Calendário acadêmico
+
+O calendário deve utilizar as atividades já armazenadas no `dados.json`.
+
+Ele deve permitir:
+
+- visualizar as atividades por mês;
+- visualizar as atividades por semana;
+- identificar o nome da atividade;
+- identificar a matéria associada;
+- visualizar provas, trabalhos e tarefas em suas respectivas datas.
+
+O calendário deve apenas representar visualmente os dados já existentes.
+
+A visualização do calendário não deve:
+
+- criar atividades duplicadas;
+- alterar datas automaticamente;
+- modificar informações sem uma ação explícita do usuário.
 
 ## Verificação
 

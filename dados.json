@@ -9,6 +9,11 @@
             "nome": "Álgebra Linear 2",
             "dificuldade": 3,
             "horas_semanais": 3.5
+        },
+        {
+            "nome": "Fisica 4",
+            "dificuldade": 3,
+            "horas_semanais": 2.0
         }
     ],
     "atividades": [
@@ -43,6 +48,14 @@
             "tipo": "Tarefa",
             "data": "2026-09-02",
             "importancia": 1
+        },
+        {
+            "id": "7f3a4a87",
+            "nome": "Prova 2",
+            "materia": "Fisica 4",
+            "tipo": "Prova",
+            "data": "2026-10-16",
+            "importancia": 4
         }
     ]
 }

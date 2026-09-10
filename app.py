@@ -3,8 +3,14 @@ import json
 import os
 import uuid
 import streamlit as st
+from streamlit_calendar import calendar
 
 ARQUIVO_DADOS = "dados.json"
+CORES_TIPO = {
+    "Prova": "#E53935",
+    "Trabalho": "#FB8C00",
+    "Tarefa": "#1E88E5",
+}
 
 
 def carregar_dados():
@@ -334,6 +340,42 @@ else:
                 f"  - **Dias até o prazo:** {status_prazo}\n"
                 f"  - **Fatores:** {explicacao}"
             )
+
+st.divider()
+st.subheader("📅 Calendário acadêmico")
+
+if not dados["atividades"]:
+    st.info("Nenhuma atividade cadastrada para exibir no calendário.")
+else:
+    eventos_calendario = []
+    for ativ in dados["atividades"]:
+        cor = CORES_TIPO.get(ativ.get("tipo"), "#3788D8")
+        eventos_calendario.append({
+            "title": f"[{ativ['tipo']}] {ativ['nome']} ({ativ['materia']})",
+            "start": ativ["data"],
+            "end": ativ["data"],
+            "allDay": True,
+            "backgroundColor": cor,
+            "borderColor": cor,
+        })
+
+    opcoes_calendario = {
+        "headerToolbar": {
+            "left": "today prev,next",
+            "center": "title",
+            "right": "dayGridMonth,timeGridWeek,dayGridWeek",
+        },
+        "initialView": "dayGridMonth",
+        "editable": False,
+        "selectable": False,
+        "locale": "pt-br",
+    }
+
+    calendar(
+        events=eventos_calendario,
+        options=opcoes_calendario,
+        key="calendario_academico",
+    )
 
 st.divider()
 st.subheader("Limpar semestre")

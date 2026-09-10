@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 import json
 import os
 import uuid
@@ -35,6 +35,44 @@ def salvar_dados(dados):
     """Salva os dados no arquivo JSON com formatação legível."""
     with open(ARQUIVO_DADOS, "w", encoding="utf-8") as f:
         json.dump(dados, f, indent=4, ensure_ascii=False)
+
+
+def calcular_urgencia(dias):
+    """Calcula a pontuação de urgência (1 a 5) com base na quantidade de dias até o prazo."""
+    if dias <= 0:
+        return 5.0
+    elif dias <= 2:
+        return 4.5
+    elif dias <= 5:
+        return 4.0
+    elif dias <= 7:
+        return 3.0
+    elif dias <= 14:
+        return 2.0
+    else:
+        return 1.0
+
+
+def gerar_explicacao_prioridade(dias, urgencia, importancia, dificuldade):
+    """Gera uma explicação concisa dos fatores que contribuíram para a prioridade."""
+    if dias < 0:
+        desc_prazo = f"prazo vencido há {abs(dias)} dia(s)"
+    elif dias == 0:
+        desc_prazo = "prazo vence hoje"
+    elif dias <= 2:
+        desc_prazo = f"prazo muito próximo ({dias} dia(s))"
+    elif dias <= 5:
+        desc_prazo = f"prazo próximo ({dias} dia(s))"
+    elif dias <= 14:
+        desc_prazo = f"prazo em {dias} dias"
+    else:
+        desc_prazo = f"prazo confortável ({dias} dias)"
+
+    return (
+        f"{desc_prazo} (urgência {urgencia:g}/5), "
+        f"importância {importancia}/5 e "
+        f"dificuldade da matéria {dificuldade}/5."
+    )
 
 
 dados = carregar_dados()
@@ -216,6 +254,86 @@ else:
                 ]
                 salvar_dados(dados)
                 st.rerun()
+
+st.divider()
+st.subheader("🎯 Prioridades de estudo")
+
+if not dados["atividades"]:
+    st.info("Nenhuma atividade cadastrada para priorizar.")
+else:
+    hoje = date.today()
+    materias_dificuldade = {
+        m["nome"]: m.get("dificuldade", 3) for m in dados["materias"]
+    }
+
+    atividades_priorizadas = []
+    for ativ in dados["atividades"]:
+        try:
+            data_obj = datetime.strptime(ativ["data"], "%Y-%m-%d").date()
+            dias = (data_obj - hoje).days
+        except (ValueError, TypeError):
+            dias = 999
+
+        urgencia = calcular_urgencia(dias)
+        dificuldade = materias_dificuldade.get(ativ["materia"], 3)
+        importancia = ativ.get("importancia", 3)
+
+        prioridade = (
+            0.45 * urgencia
+            + 0.35 * importancia
+            + 0.20 * dificuldade
+        )
+        explicacao = gerar_explicacao_prioridade(
+            dias, urgencia, importancia, dificuldade
+        )
+
+        atividades_priorizadas.append({
+            "atividade": ativ,
+            "dias": dias,
+            "prioridade": prioridade,
+            "explicacao": explicacao
+        })
+
+    # 1. Atividades atrasadas (dias < 0) aparecem no topo, da mais atrasada para a menos atrasada
+    atrasadas = [item for item in atividades_priorizadas if item["dias"] < 0]
+    atrasadas.sort(key=lambda x: (x["dias"], -x["prioridade"]))
+
+    # 2. Atividades no prazo seguem o ranking por nota de prioridade decrescente
+    nao_atrasadas = [item for item in atividades_priorizadas if item["dias"] >= 0]
+    nao_atrasadas.sort(key=lambda x: x["prioridade"], reverse=True)
+
+    atividades_priorizadas = atrasadas + nao_atrasadas
+
+    for item_prio in atividades_priorizadas:
+        ativ = item_prio["atividade"]
+        dias = item_prio["dias"]
+        prioridade = item_prio["prioridade"]
+        explicacao = item_prio["explicacao"]
+
+        if dias < 0:
+            status_prazo = f"Atrasada há {abs(dias)} dia(s)"
+            st.error(
+                f"🔴 **[ATRASADA] {ativ['nome']}** ({ativ['tipo']})\n\n"
+                f"- **Matéria:** {ativ['materia']}\n"
+                f"- **Nota de prioridade:** `{prioridade:.2f} / 5.00`\n"
+                f"- **Dias até o prazo:** {status_prazo}\n"
+                f"- **Fatores:** {explicacao}"
+            )
+        else:
+            if dias == 0:
+                status_prazo = "🟠 Vence hoje"
+            elif dias == 1:
+                status_prazo = "🗓️ Falta 1 dia"
+            else:
+                status_prazo = f"🗓️ Faltam {dias} dias"
+
+            st.markdown(
+                f"- **{ativ['nome']}** ({ativ['tipo']})\n"
+                f"  - **Matéria:** {ativ['materia']}\n"
+                f"  - **Nota de prioridade:** `{prioridade:.2f} / 5.00`\n"
+                f"  - **Dias até o prazo:** {status_prazo}\n"
+                f"  - **Fatores:** {explicacao}"
+            )
 
 st.divider()
 st.subheader("Limpar semestre")

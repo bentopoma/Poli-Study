@@ -19,6 +19,30 @@
             "tipo": "Prova",
             "data": "2026-09-23",
             "importancia": 5
+        },
+        {
+            "id": "01e09e08",
+            "nome": "Prova 1",
+            "materia": "Cálculo I",
+            "tipo": "Prova",
+            "data": "2026-09-09",
+            "importancia": 3
+        },
+        {
+            "id": "e800ee42",
+            "nome": "Trabalho 1",
+            "materia": "Cálculo I",
+            "tipo": "Prova",
+            "data": "2026-09-07",
+            "importancia": 2
+        },
+        {
+            "id": "c875c3d1",
+            "nome": "Lista de exercícios 2",
+            "materia": "Álgebra Linear 2",
+            "tipo": "Tarefa",
+            "data": "2026-09-02",
+            "importancia": 1
         }
     ]
 }

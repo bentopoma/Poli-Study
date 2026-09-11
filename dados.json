@@ -32,7 +32,8 @@
             "materia": "Álgebra Linear 2",
             "tipo": "Prova",
             "data": "2026-09-25",
-            "importancia": 5
+            "importancia": 5,
+            "concluida": false
         },
         {
             "id": "01e09e08",
@@ -40,7 +41,8 @@
             "materia": "Cálculo I",
             "tipo": "Prova",
             "data": "2026-09-09",
-            "importancia": 3
+            "importancia": 3,
+            "concluida": true
         },
         {
             "id": "e800ee42",
@@ -48,7 +50,8 @@
             "materia": "Cálculo I",
             "tipo": "Prova",
             "data": "2026-09-07",
-            "importancia": 2
+            "importancia": 2,
+            "concluida": false
         },
         {
             "id": "c875c3d1",
@@ -56,7 +59,8 @@
             "materia": "Álgebra Linear 2",
             "tipo": "Tarefa",
             "data": "2026-09-02",
-            "importancia": 1
+            "importancia": 1,
+            "concluida": false
         },
         {
             "id": "7f3a4a87",
@@ -64,7 +68,8 @@
             "materia": "Fisica 3",
             "tipo": "Prova",
             "data": "2026-10-16",
-            "importancia": 4
+            "importancia": 4,
+            "concluida": false
         }
     ]
 }

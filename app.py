@@ -157,6 +157,9 @@ else:
 
     atividades_priorizadas = atrasadas + nao_atrasadas
 
+    if not atividades_priorizadas:
+        st.info("Nenhuma atividade pendente para priorizar.")
+
     for item_prio in atividades_priorizadas:
         ativ = item_prio["atividade"]
         dias = item_prio["dias"]
@@ -307,7 +310,57 @@ st.subheader("Atividades cadastradas")
 if not dados["atividades"]:
     st.info("Nenhuma atividade cadastrada ainda.")
 else:
+    # Filtros independentes: podem ser combinados entre si.
+    col_filtro_tipo, col_filtro_status, col_filtro_materia = st.columns(3)
+
+    with col_filtro_tipo:
+        filtro_tipo = st.selectbox(
+            "Tipo",
+            options=["Todas", "Provas", "Trabalhos", "Tarefas"],
+            key="filtro_tipo_atividade"
+        )
+
+    with col_filtro_status:
+        filtro_status = st.selectbox(
+            "Status",
+            options=["Todas", "Pendentes", "Concluídas"],
+            key="filtro_status_atividade"
+        )
+
+    with col_filtro_materia:
+        opcoes_materia = ["Todas as matérias"] + [m["nome"] for m in dados["materias"]]
+        filtro_materia = st.selectbox(
+            "Matéria",
+            options=opcoes_materia,
+            key="filtro_materia_atividade"
+        )
+
+    mapa_tipo = {
+        "Provas": "Prova",
+        "Trabalhos": "Trabalho",
+        "Tarefas": "Tarefa",
+    }
+
+    atividades_filtradas = []
     for ativ in dados["atividades"]:
+        if filtro_tipo != "Todas" and ativ.get("tipo") != mapa_tipo[filtro_tipo]:
+            continue
+
+        concluida = ativ.get("concluida", False)
+        if filtro_status == "Pendentes" and concluida:
+            continue
+        if filtro_status == "Concluídas" and not concluida:
+            continue
+
+        if filtro_materia != "Todas as matérias" and ativ.get("materia") != filtro_materia:
+            continue
+
+        atividades_filtradas.append(ativ)
+
+    if not atividades_filtradas:
+        st.info("Nenhuma atividade corresponde aos filtros selecionados.")
+
+    for ativ in atividades_filtradas:
         try:
             data_formatada = datetime.strptime(
                 ativ["data"], "%Y-%m-%d"
@@ -315,14 +368,28 @@ else:
         except (ValueError, TypeError):
             data_formatada = str(ativ.get("data", ""))
 
-        col_ativ_info, col_ativ_edit, col_ativ_del = st.columns([5, 1, 1])
+        concluida = ativ.get("concluida", False)
+        nome_exibicao = f"~~{ativ['nome']}~~" if concluida else f"**{ativ['nome']}**"
+        status_exibicao = "Concluída ✅" if concluida else "Pendente ⬜"
+
+        col_ativ_info, col_ativ_status, col_ativ_edit, col_ativ_del = st.columns([5, 1, 1, 1])
+
         with col_ativ_info:
-            st.write(
-                f"- **{ativ['nome']}** ({ativ['tipo']}) — "
+            st.markdown(
+                f"- {nome_exibicao} ({ativ['tipo']}) — "
                 f"Matéria: {ativ['materia']} | "
                 f"Data: {data_formatada} | "
-                f"Importância: {ativ['importancia']}/5"
+                f"Importância: {ativ['importancia']}/5 | "
+                f"**{status_exibicao}**"
             )
+
+        with col_ativ_status:
+            rotulo_status = "↩️ Reabrir" if concluida else "✅ Concluir"
+            if st.button(rotulo_status, key=f"status_ativ_{ativ['id']}"):
+                ativ["concluida"] = not concluida
+                salvar_dados(dados)
+                st.rerun()
+
         with col_ativ_edit:
             if st.button("✏️ Editar", key=f"btn_edit_ativ_{ativ['id']}"):
                 if st.session_state.get("editando_atividade_id") == ativ["id"]:
@@ -330,6 +397,7 @@ else:
                 else:
                     st.session_state["editando_atividade_id"] = ativ["id"]
                 st.rerun()
+
         with col_ativ_del:
             if st.button("🗑️ Excluir", key=f"del_ativ_{ativ['id']}"):
                 dados["atividades"] = [
@@ -390,6 +458,11 @@ else:
                         value=int(ativ.get("importancia", 3)),
                         key=f"edit_imp_ativ_{ativ['id']}"
                     )
+                    edit_concluida_ativ = st.checkbox(
+                        "Atividade concluída",
+                        value=ativ.get("concluida", False),
+                        key=f"edit_concluida_ativ_{ativ['id']}"
+                    )
 
                     col_save_a, col_canc_a = st.columns([1, 1])
                     with col_save_a:
@@ -401,6 +474,7 @@ else:
                                 ativ["tipo"] = edit_tipo_ativ
                                 ativ["data"] = edit_data_ativ.strftime("%Y-%m-%d")
                                 ativ["importancia"] = edit_imp_ativ
+                                ativ["concluida"] = edit_concluida_ativ
                                 salvar_dados(dados)
                                 st.session_state.pop("editando_atividade_id", None)
                                 st.success(f"Atividade '{nome_ativ_limpo}' atualizada!")

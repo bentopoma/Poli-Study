@@ -36,6 +36,9 @@ def carregar_dados():
                 if "id" not in ativ:
                     ativ["id"] = uuid.uuid4().hex[:8]
                     precisa_salvar = True
+                if "concluida" not in ativ:
+                    ativ["concluida"] = False
+                    precisa_salvar = True
             if precisa_salvar:
                 salvar_dados(dados)
             return dados
@@ -116,6 +119,8 @@ else:
 
     atividades_priorizadas = []
     for ativ in dados["atividades"]:
+        if ativ.get("concluida", False):
+            continue
         try:
             data_obj = datetime.strptime(ativ["data"], "%Y-%m-%d").date()
             dias = (data_obj - hoje).days
@@ -184,6 +189,33 @@ else:
             )
 
 st.divider()
+st.subheader("📌 Esta semana")
+
+DIAS_PT = {0: "Segunda", 1: "Terça", 2: "Quarta", 3: "Quinta", 4: "Sexta", 5: "Sábado", 6: "Domingo"}
+hoje_semana = date.today()
+esta_semana = []
+for ativ in dados["atividades"]:
+    if ativ.get("concluida", False):
+        continue
+    try:
+        data_obj = datetime.strptime(ativ["data"], "%Y-%m-%d").date()
+        delta = (data_obj - hoje_semana).days
+    except (ValueError, TypeError):
+        continue
+    if 0 <= delta < 7:
+        esta_semana.append((delta, data_obj, ativ))
+
+esta_semana.sort(key=lambda x: x[0])
+
+if not esta_semana:
+    st.info("Nenhuma atividade pendente para os próximos 7 dias.")
+else:
+    for _, data_obj, ativ in esta_semana:
+        dia_semana = DIAS_PT[data_obj.weekday()]
+        data_fmt = data_obj.strftime("%d/%m")
+        st.write(f"**{dia_semana}** — {data_fmt} — {ativ['nome']} — {ativ['materia']} — {ativ['tipo']}")
+
+st.divider()
 st.subheader("📅 Calendário acadêmico")
 
 if not dados["atividades"]:
@@ -191,9 +223,14 @@ if not dados["atividades"]:
 else:
     eventos_calendario = []
     for ativ in dados["atividades"]:
-        cor = CORES_TIPO.get(ativ.get("tipo"), "#3788D8")
+        if ativ.get("concluida", False):
+            cor = "#9E9E9E"
+            titulo = f"✓ [{ativ['tipo']}] {ativ['nome']} ({ativ['materia']})"
+        else:
+            cor = CORES_TIPO.get(ativ.get("tipo"), "#3788D8")
+            titulo = f"[{ativ['tipo']}] {ativ['nome']} ({ativ['materia']})"
         eventos_calendario.append({
-            "title": f"[{ativ['tipo']}] {ativ['nome']} ({ativ['materia']})",
+            "title": titulo,
             "start": ativ["data"],
             "end": ativ["data"],
             "allDay": True,
@@ -251,7 +288,8 @@ with st.expander("➕ Adicionar atividade"):
                     "materia": materia_selecionada,
                     "tipo": tipo_selecionado,
                     "data": data_selecionada.strftime("%Y-%m-%d"),
-                    "importancia": importancia_selecionada
+                    "importancia": importancia_selecionada,
+                    "concluida": False
                 }
                 dados["atividades"].append(nova_atividade)
                 salvar_dados(dados)

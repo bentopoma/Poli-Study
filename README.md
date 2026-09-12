@@ -77,6 +77,10 @@ Os dados são armazenados localmente no arquivo `dados.json`.
 
 A aplicação cria e atualiza esse arquivo automaticamente. Cada matéria e atividade possui um identificador único para permitir edição e exclusão de registros sem duplicação.
 
+## Dados de demonstração
+
+O projeto é disponibilizado com alguns dados fictícios para facilitar a visualização das funcionalidades. Caso deseje testar a plataforma do zero, utilize a opção **"Limpar semestre"** ao final da página.
+
 ## Tecnologias utilizadas
 
 - Python
